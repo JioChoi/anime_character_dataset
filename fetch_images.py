@@ -19,7 +19,7 @@ solver = None
 
 def search(character, copyright):
     global driver
-    character = character.split("(")[0].strip()
+    character = character.replace(f"({copyright})", "").strip()
     copyright = copyright.replace("(series)", "").strip()
 
     query = f"{character} {copyright} -figure"
@@ -29,20 +29,20 @@ def search(character, copyright):
     driver.get(url)
     time.sleep(1)
 
-def downloadImage(hash):
+def downloadImage(hash, fast=False):
     elem = driver.find_element(By.ID, 'search')
     elem = elem.find_element(By.CLASS_NAME, 'YQ4gaf')
     elem.click()
-    time.sleep(1)
-    elem = driver.find_element(By.CLASS_NAME, 'FyHeAf')
-    src = elem.get_attribute('src')
+    if not fast:
+        time.sleep(1)
+    imgelem = driver.find_element(By.CLASS_NAME, 'FyHeAf')
+    src = imgelem.get_attribute('src')
     print(src)
-
-    response = requests.get(src, headers={'User-Agent': 'anime_character_dataset_builder'})
 
     if not os.path.exists("images"):
         os.makedirs("images")
 
+    response = requests.get(src, headers={'User-Agent': 'Googlebot-Image'})
     img = Image.open(BytesIO(response.content))
 
     img.thumbnail((720, 720))
@@ -56,10 +56,9 @@ def download(index, retry=0):
     if retry > 3:
         print(f"Failed to download image for {characters[index]['name']} after 3 attempts.")
         return
-
     try:
         search(character['name'], character['copyright'][0][0])
-        id = downloadImage(character['hash'])
+        downloadImage(character['hash'], retry >= 1)
     except:
         print(f"Error downloading image for {character['name']}")
         try:
@@ -90,7 +89,24 @@ def main():
     search("NSFW", "")
     time.sleep(5)
 
-    for i in tqdm(range(len(characters))):
+    for i in tqdm(range(31647, len(characters))):
+        if characters[i]['copyright'] == []:
+            continue
+
+        if os.path.exists(f'images/{characters[i]["hash"]}.webp') and ('(' not in characters[i]['name'] or "(kancolle)" in characters[i]['name'] or "(fate)" in characters[i]['name']):
+            continue
+
+        # NAME CHECK
+        cpin = False
+        cpsplit = characters[i]['copyright'][0][0].split(" ")
+        for cp in cpsplit:
+            if cp in characters[i]['name']:
+                cpin = True
+                break
+        
+        if cpin and os.path.exists(f'images/{characters[i]["hash"]}.webp'):
+            continue
+
         print(f"Character count: {characters[i]['count']}")
         print(f"Progress: {i + 1}/{len(characters)}")
         download(i)
