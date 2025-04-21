@@ -13,6 +13,7 @@ import time
 import json
 from tqdm import tqdm
 
+
 driver = None
 characters = []
 solver = None
@@ -42,7 +43,7 @@ def downloadImage(hash, fast=False):
     if not os.path.exists("images"):
         os.makedirs("images")
 
-    response = requests.get(src, headers={'User-Agent': 'Googlebot-Image'})
+    response = requests.get(src, headers={'User-Agent': 'Googlebot-Image'}, timeout=10)
     img = Image.open(BytesIO(response.content))
 
     img.thumbnail((720, 720))
@@ -89,22 +90,11 @@ def main():
     search("NSFW", "")
     time.sleep(5)
 
-    for i in tqdm(range(31647, len(characters))):
+    for i in tqdm(range(0, len(characters))):
         if characters[i]['copyright'] == []:
             continue
 
-        if os.path.exists(f'images/{characters[i]["hash"]}.webp') and ('(' not in characters[i]['name'] or "(kancolle)" in characters[i]['name'] or "(fate)" in characters[i]['name']):
-            continue
-
-        # NAME CHECK
-        cpin = False
-        cpsplit = characters[i]['copyright'][0][0].split(" ")
-        for cp in cpsplit:
-            if cp in characters[i]['name']:
-                cpin = True
-                break
-        
-        if cpin and os.path.exists(f'images/{characters[i]["hash"]}.webp'):
+        if os.path.exists(f'images/{characters[i]["hash"]}.webp'):
             continue
 
         print(f"Character count: {characters[i]['count']}")
